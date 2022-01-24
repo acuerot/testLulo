@@ -1,21 +1,17 @@
 Feature: Operaciones empleados
 
   Scenario: Consulta empleados
-    Given Angelica prepara la consulta
-    When ella consulta empleados
-    Then ella observa que la consulta de empleados es exitosa
+    When un tester consulta empleados
+    Then puede recuperar la información de los empleados
 
   Scenario: Consulta empleado
-    Given Angelica prepara la consulta
-    When ella consulta un empleado
-    Then ella observa que la consulta del empleado es exitosa
+    When un tester consulta un empleado
+    Then puede recuperar la información del empleado
 
   Scenario: Crear empleado
-    Given Angelica prepara la creación
-    When ella crea un empleado
-    Then ella observa que la creación del empleado es exitosa
+    When un tester crea un empleado
+    Then se crea el empleado exitosamente
 
   Scenario: Borrar empleado
-    Given Angelica prepara la eliminación
-    When ella borra un empleado
-    Then ella observa que el borrado del empleado es exitosa
+    When un tester borra un empleado
+    Then se borra el empleado exitosamente

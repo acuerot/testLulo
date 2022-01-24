@@ -1,123 +1,99 @@
 package starter.stepdefinitions;
 
-import com.github.javafaker.Faker;
+import com.serenity.rest.models.data.EmpleadoData;
+import com.serenity.rest.models.empleado.NuevoEmpleado;
+import com.serenity.rest.tasks.rest.GetRequest;
+import com.serenity.rest.tasks.rest.PostRequest;
 import com.serenity.rest.utils.DtoConsultaEmpleados.ConsultaEmpleadoDetalleDto;
-import com.serenity.rest.utils.DtoConsultaEmpleados.ConsultaEmpleadosDto;
 import io.cucumber.java.Before;
-import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
 import io.restassured.RestAssured;
-import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
-import org.json.JSONObject;
+import net.serenitybdd.rest.SerenityRest;
+import net.serenitybdd.screenplay.Actor;
+import net.serenitybdd.screenplay.rest.abilities.CallAnApi;
+import net.thucydides.core.util.EnvironmentVariables;
 import java.util.HashMap;
-import java.util.List;
 
+import static net.serenitybdd.screenplay.rest.questions.ResponseConsequence.seeThatResponse;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
 
 public class EmpleadoApiStepDefinitions {
 
-    final String BASE_URI = "http://dummy.restapiexample.com/api/v1/";
-    final int edadMinima = 18;
-    final int edadMaxima = 85;
-    final int salarioMinimo = 1200000;
-    final int salarioMaximo = 8000000;
-    Faker faker = new Faker();
+    Actor actor = Actor.named("Angie");
+    EnvironmentVariables environmentVariables;
     RequestSpecification request;
+    Response response;
 
     @Before
     public void setup() {
-        RestAssured.baseURI = BASE_URI;
+        actor.whoCan(CallAnApi.at(environmentVariables.getProperty("baseUrl")));
+        RestAssured.baseURI = environmentVariables.getProperty("baseUrl");
     }
 
-    @Given("Angelica prepara la consulta")
-    public void angelica_prepara_la_consulta() {
+    @When("un tester consulta empleados")
+    public void un_tester_consulta_empleados() {
+        actor.attemptsTo(GetRequest.withResource(environmentVariables.getProperty("consultaEmpleados")));
     }
 
-    @When("ella consulta empleados")
-    public void ella_consulta_empleados() {
-        request = RestAssured.given();
-        Response response = request.get("employees");
-        System.out.println("Response: " + response.asString());
-        response.then().assertThat().statusCode(200);
-        JsonPath jsonPathEvaluator = response.jsonPath();
-        List<ConsultaEmpleadoDetalleDto> listaEmpleados = jsonPathEvaluator.getList("data",ConsultaEmpleadoDetalleDto.class);
+    @Then("puede recuperar la información de los empleados")
+    public void puede_recuperar_la_información_de_los_empleados() {
+        actor.should(seeThatResponse("Ver el código de respuesta",
+                response -> response.statusCode(200)));
+        ConsultaEmpleadoDetalleDto[] listaEmpleados = SerenityRest.lastResponse()
+                .jsonPath().getObject("data", ConsultaEmpleadoDetalleDto[].class);
         /**
          * Se buscan empleados mayores de 30 años y se imprimen
          * con el nombre
          */
         HashMap<String, Integer> mapEmpleados = new HashMap <> ();
-        System.out.println("Prueba::" + listaEmpleados.get(0).getEmployeeName());
-        for(int i=0;i<listaEmpleados.size();i++){
-            if(listaEmpleados.get(i).getEmployeeAge()>30){
-                mapEmpleados.put(listaEmpleados.get(i).getEmployeeName(),
-                        listaEmpleados.get(i).getEmployeeAge());
-            }
+        for (int i = 0; i < listaEmpleados.length; i++) {
+            assertThat(listaEmpleados[i]).hasNoNullFieldsOrProperties();
+            mapEmpleados.put(listaEmpleados[i].getEmployeeName(),
+                    listaEmpleados[i].getEmployeeAge());
         }
         System.out.println("Empleados mayores de 30 años: " + mapEmpleados);
     }
 
-    @Then("ella observa que la consulta de empleados es exitosa")
-    public void ella_observa_que_la_consulta_de_empleados_es_exitosa() {
-
+    @When("un tester consulta un empleado")
+    public void un_tester_consulta_un_empleado() {
+        actor.attemptsTo(GetRequest.withResource(environmentVariables.getProperty("consultaEmpleado")));
     }
 
-    @When("ella consulta un empleado")
-    public void ella_consulta_un_empleado() {
+    @Then("puede recuperar la información del empleado")
+    public void puede_recuperar_la_información_del_empleado() {
+        actor.should(seeThatResponse("Ver el código de respuesta",
+                response -> response.statusCode(200)));
+    }
+
+    @When("un tester crea un empleado")
+    public void un_tester_crea_un_empleado() {
+        actor.attemptsTo(PostRequest.withData(environmentVariables.getProperty("crearEmpleado"),
+                EmpleadoData.getNuevoEmpleado()));
+    }
+
+    @Then("se crea el empleado exitosamente")
+    public void se_crea_el_empleado_exitosamente() {
+        actor.should(seeThatResponse("ver el código de respuesta",
+                response -> response.statusCode(200)));
+        NuevoEmpleado user = SerenityRest.lastResponse()
+                .jsonPath().getObject("", NuevoEmpleado.class);
+        assertThat(user).hasNoNullFieldsOrProperties();
+    }
+
+    @When("un tester borra un empleado")
+    public void un_tester_borra_un_empleado() {
         request = RestAssured.given();
-        Response response = request.get("employee/1");
+        response = request.delete(environmentVariables.getProperty("borrarEmpleado").concat("1"));
         System.out.println("Response: " + response.asString());
-        response.then().assertThat().statusCode(200).
-                and().body("data.id", equalTo(1),"data.employee_name",is("Tiger Nixon"));
     }
 
-    @Then("ella observa que la consulta del empleado es exitosa")
-    public void ella_observa_que_la_consulta_del_empleado_es_exitosa() {
-
-    }
-
-    @Given("Angelica prepara la creación")
-    public void angelica_prepara_la_creación() {
-
-    }
-
-    @When("ella crea un empleado")
-    public void ella_crea_un_empleado() {
-        request = RestAssured.given();
-        JSONObject requestParams = new JSONObject();
-        requestParams.put("name",faker.name().firstName());
-        requestParams.put("salary",faker.number().numberBetween(salarioMinimo,salarioMaximo));
-        requestParams.put("age",faker.number().numberBetween(edadMinima,edadMaxima));
-        request.body(requestParams.toString());
-        Response response = request.post("create");
-        System.out.println("Response: " + response.asString());
-        response.then().assertThat().statusCode(200).
-                and().body("message",containsString("Record has been added."));
-    }
-
-    @Then("ella observa que la creación del empleado es exitosa")
-    public void ella_observa_que_la_creación_del_empleado_es_exitosa() {
-
-    }
-
-    @Given("Angelica prepara la eliminación")
-    public void angelica_prepara_la_eliminación() {
-
-    }
-
-    @When("ella borra un empleado")
-    public void ella_borra_un_empleado() {
-        RequestSpecification request = RestAssured.given();
-        Response response = request.delete("delete/1");
-        System.out.println("Response: " + response.asString());
+    @Then("se borra el empleado exitosamente")
+    public void se_borra_el_empleado_exitosamente() {
         response.then().assertThat().statusCode(200).
                 and().body("message",containsString("Record has been deleted"));
-    }
-
-    @Then("ella observa que el borrado del empleado es exitosa")
-    public void ella_observa_que_el_borrado_del_empleado_es_exitosa() {
-
     }
 }
